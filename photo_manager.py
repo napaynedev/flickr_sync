@@ -5,16 +5,19 @@ Created on Wed May 20 20:05:03 2015
 @author: root
 """
 
-import sqlite3 as lite, os
+import sqlite3 as lite, os, datetime
 
-debug = True
+from photo import photo, db_photo
+
+debug = False
 
 class photo_manager(object):
     """
     http://zetcode.com/db/sqlitepythontutorial/
     """
     def __init__(self, yaml):
-        path = yaml["photo_info_db"]        
+        path = yaml["photo_info_db"]
+        self.log = open(yaml["photo_manager_log"], "w")        
         if os.path.exists(path):
             self.db = lite.connect(path)
             self.cursor = self.db.cursor()
@@ -23,6 +26,19 @@ class photo_manager(object):
             self._create_blank_db(path)
         self._tag_dict = dict()
         self._read_tags()
+        self.start_time = datetime.datetime.now()
+        
+    def get_photo_count(self):
+        sql = "SELECT COUNT(id) FROM photo"
+        return self._get_single_result(sql)
+        
+    def check_id(self, pid):
+        sql = "SELECT name FROM photo WHERE fid="+str(pid)
+        photo_check = self._get_single_result(sql)
+        if photo_check == None:
+            return False
+        else:
+            return photo_check
         
     def _read_tags(self):
         sql = "SELECT enum, label FROM tag_enum"
@@ -32,29 +48,63 @@ class photo_manager(object):
                 self._tag_dict[result[1]] = result[0] #key: label, value: enum
             
     def _add_tag(self, tag):
-        new_enum = self._generate_tag_enum()
-        self._tag_dict[new_enum] = tag
-        sql = "INSERT INTO tag_enum VALUES(?, ?)"
-        self._execute(sql, args=(new_enum, tag))
-        return new_enum
+        if tag not in self._tag_dict:
+            if debug:
+                print "New tag: "+tag
+            new_enum = self._generate_tag_enum()
+            self._tag_dict[tag] = new_enum
+            sql = "INSERT INTO tag_enum VALUES(?, ?)"
+            self._execute(sql, args=(new_enum, tag))
+            return new_enum
             
     def _create_blank_db(self, path):
         self.db = lite.connect(path)
         self.cursor = self.db.cursor()  
         self.cursor.executescript("""
             CREATE TABLE photo(id INT, originally_found INT, size INT, image_hash TEXT, 
-                               local_path TEXT, extension TEXT, modified_time REAL, download_time REAL,
+                               local_path TEXT, extension TEXT, modified_time REAL, download_time REAL, last_touch REAL,
                                name TEXT, fid INT, public INT, family INT, friends INT, upload_time REAL);
             CREATE TABLE tag_enum(enum INT, label TEXT);
             CREATE TABLE tag_map(tag_enum INT, photo_id INT);
             """)
         self.db.commit()
         
-    def add_local_photo(self, photo):
-        if self.local_photo_exists(photo):
-            print 'ERROR: Local file already exists: '+photo.name
+    def add_local_photo(self, lphoto):
+        if not self.local_photo_exists(lphoto):
+            self.insert_photo(0, lphoto.size, lphoto.hash, tags=lphoto.tags, 
+                              name=lphoto.filename, local_path=lphoto.photo_path, 
+                              extension=lphoto.extension, time=lphoto.modified_time)
+            
+    def add_flickr_photo(self, flickr_photo, flickr_local_dir):
+        if not self.flickr_photo_exists(flickr_photo):
+            move_success = flickr_photo.move_flickr_to_local(flickr_local_dir)
+            if move_success:
+                self.insert_photo(1, flickr_photo.size, flickr_photo.hash, tags=flickr_photo.tags, 
+                                  name=flickr_photo.filename, local_path=flickr_photo.photo_path, 
+                                  extension=flickr_photo.extension, time=flickr_photo.modified_time,
+                                  dtime=flickr_photo.download_time, public=flickr_photo.ispublic,
+                                  family=flickr_photo.isfamily, friends=flickr_photo.isfriend)
+        
+    def flickr_photo_exists(self, fphoto):
+        attribute_matches = self.check_for_attributes(fphoto)
+        # If it isn't the exact same file, check the attributes
+        if attribute_matches != None:
+            print 'A local image with the same hash already exists in the database'
+            self.log.write('Possible duplicate Image: '+str(fphoto))
+            for match in attribute_matches:
+                self.log.write('Existing Image: '+str(db_photo(db_entry=match)))
+            #exit()
+            return True
+        return False
+            
+    def _string_found(self, found_value):
+        if found_value == 0:
+            return "Originally Local"
+        elif found_value == 1:
+            return "Originally Flickr"
         else:
-            self.insert_photo(0, photo.size, photo.hash, local_path=photo.photo_path, extension=photo.extension, time=photo.modified_time)
+            print 'ERROR: Bad found value:'+str(found_value)
+            exit()
             
     def insert_photo(self,
                      found,
@@ -75,24 +125,34 @@ class photo_manager(object):
         http://stackoverflow.com/questions/17169642/python-sqlite-insert-named-parameters-or-null
         """
         uid = self._generate_photo_id()
-        sql = "INSERT INTO photo VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        values = (uid, found, size, ihash, local_path, extension, time, dtime, 
+        # http://stackoverflow.com/questions/415511/how-to-get-current-time-in-python
+        sql = "INSERT INTO photo VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        values = (uid, found, size, ihash, 
+                  local_path, extension, time, dtime, self.start_time,
                   name, fid, public, family, friends, utime)
         self._execute(sql, args=values)
-        tag_additions = ()
+        tag_additions = list()
         if tags != None:
+            if debug:
+                print 'There are tags'
             for tag in tags:
                 if tag not in self._tag_dict:
                     tag_enum = self._add_tag(tag)
                 else:
                     tag_enum = self._tag_dict[tag]
                 # http://stackoverflow.com/questions/1380860/add-variables-to-tuple
-                tag_additions = tag_additions +((tag_enum, uid))
+                tag_additions.append((tag_enum, uid))
             sql = "INSERT INTO tag_map VALUES(?, ?)"
             self._execute_many(sql, tag_additions)        
                      
     def _generate_photo_id(self):
-        sql = "SELECT MAX(id) FROM photo"
+        return self._generate_id("photo", "id")
+        
+    def _generate_tag_enum(self):
+        return self._generate_id("tag_enum", "enum")
+        
+    def _generate_id(self, table, field):
+        sql = "SELECT MAX("+field+") FROM "+table
         new_id = self._get_single_result(sql)
         if new_id == None:
             new_id = 0
@@ -101,13 +161,6 @@ class photo_manager(object):
         if debug:
             print 'Generated new ID :'+str(new_id)
         return new_id
-        
-    def _generate_tag_enum(self):
-        return self._generate_id("tag_enum", "enum")
-        
-    def _generate_id(self, table, field):
-        sql = "SELECT MAX(?) FROM ?"
-        return self._get_single_result(sql, args=(field, table))
             
     def _execute(self, sql, args=None):
         """
@@ -122,36 +175,54 @@ class photo_manager(object):
         self.db.commit()
             
     def _execute_many(self, sql, args=None):
+        if debug:
+            print 'Executing multilple SQL: '+sql
         if args == None:
             print 'ERROR: execute_many must have non-None args'
             exit()
         self.cursor.executemany(sql, args)
         self.db.commit()
         
-    def local_photo_exists(self, photo):
-        local_already_present = self.check_for_path(photo)
+    def local_photo_exists(self, lphoto):
+        local_already_present = self.check_for_path(lphoto)
+        attribute_matches = self.check_for_attributes(lphoto)
+        # If it isn't the exact same file, check the attributes
         if local_already_present != None:
-            print 'Local file path already exists in the DB! '+photo.photo_path
-            exit()
+            if debug:
+                print 'Local file path already exists in the DB! '+lphoto.photo_path
+            #exit()
             return True
-        attribute_matches = self.check_for_attributes(photo)
-        if attribute_matches != None:
-            print 'In image with these attributes already exists in the database'
-            exit()
+        elif attribute_matches != None:
+            print 'A local image with a different path already exists in the database'
+            self.log.write('Possible duplicate Image: '+str(lphoto))
+            for match in attribute_matches:
+                self.log.write('Existing Image: '+str(db_photo(db_entry=match)))
+            #exit()
             return True
         return False
         
-    def check_for_path(self, photo):
+    def check_for_path(self, lphoto):
         sql = "SELECT local_path, modified_time, size, image_hash FROM photo WHERE local_path=?"
-        return self._get_multiple_results(sql, args=(photo.photo_path,))
+        result = self._get_multiple_results(sql, args=(lphoto.photo_path,))
+        if result != None:
+            self._update_last_touch("local_path", lphoto.photo_path)
+        return result
+        
+    def _update_last_touch(self, field, value):
+        sql = "UPDATE photo SET last_touch=? WHERE "+field+"=?"
+        self._execute(sql, (self.start_time, value))
     
-    def check_for_attributes(self, photo):
-        sql= "SELECT local_path, originally_found, id FROM photo WHERE size=? AND image_hash=?"
-        return self._get_multiple_results(sql, args=(photo.size, photo.hash))
+    def check_for_attributes(self, photo_obj):
+        sql= "SELECT id, fid, local_path, extension, size, modified_time, image_hash FROM photo WHERE size=? AND image_hash=?"
+        return self._get_multiple_results(sql, args=(photo_obj.size, photo_obj.hash))
         
     def _get_single_result(self, sql, args=None):
         self._execute(sql, args)
-        return self.cursor.fetchone()[0]
+        result = self.cursor.fetchone()
+        if result == None:
+            return None
+        else:
+            return result[0]
                                                                   
     def _get_multiple_results(self, sql, args=None):
         self._execute(sql, args)        
@@ -161,5 +232,33 @@ class photo_manager(object):
         else:
             return None
             
+    def get_photo_tags(self, photo_id):
+        sql = "SELECT te.label FROM ((SELECT * FROM tag_map WHERE photo_id=?) AS tm LEFT JOIN tag_enum AS te ON tm.tag_enum=te.enum)"
+        args = (photo_id,)
+        results = self._get_multiple_results(sql, args)
+        return_list = list()
+        for result in results:
+            return_list.append(result[0])
+        return return_list
+            
+    def get_photos_to_upload(self):
+        """
+        http://www.w3schools.com/sql/sql_null_values.asp
+        """
+        sql = "SELECT local_path, name, id FROM photo WHERE originally_found=0 AND upload_time IS NULL"
+        return self._get_multiple_results(sql)
+        
+    def add_upload_data(self, local_path, photo_id=None, public=None, family=None, friend=None, upload_time=None):
+        """
+        http://www.w3schools.com/sql/sql_update.asp
+        """
+        if debug:
+            print 'Adding upload data:'
+            print 'photo_id: '+str(photo_id)
+        sql = "UPDATE photo SET fid=?, public=?, family=?, friends=?, upload_time=? WHERE local_path=?"
+        args = (photo_id, public, family, friend, upload_time, local_path)
+        self._execute(sql, args)
+            
     def close(self):
         self.db.close()
+        self.log.close()
