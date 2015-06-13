@@ -1,0 +1,27 @@
+# These are required and must be filled in
+# Go to the flickr website to get them
+api_key:         XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+api_secret:      XXXXXXXXXXXXXXXX
+auth_token_path: /example/path/to/auth.token
+# DEFAULTS
+# Photo permissions define who can see the uploaded photos on flickr
+photo_permissions: 
+    is_family: 1
+    is_friend: 0
+    is_public: 0
+# This the list of file extensions that will be considered a photo and uploaded
+# to flickr, all other files will be ignored
+# The key is only used, not the value
+supported_photo_types:
+    - JPG
+# This is the database where photo exchange (local and flickr) are tracked
+# If it does not exist it will be created here
+photo_info_db: photo_info.db
+
+# OPTIONAL
+# Photo directories
+# A single directory may be provided as an input to the python script and
+# this information will be ignored.  The input will only support a single
+# directory while this supports a list
+photo_directories:
+    - /my/photos/are/kept/here
