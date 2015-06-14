@@ -90,7 +90,6 @@ class photo(object):
         """
         This function should not receive uid and fid
         """
-        sql= "SELECT id, fid, local_path, extension, size, modified_time, image_hash FROM photo WHERE size=? AND image_hash=?"
         self.photo_path = db_entry[0]
         self.containing_directory, self.filename = self._get_containing_and_filename(self.photo_path)
         self.fname= self._get_fname_and_extension(self.filename)[0]

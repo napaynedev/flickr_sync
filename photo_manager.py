@@ -11,6 +11,8 @@ from photo import photo, db_photo
 
 debug = False
 
+db_entry_fields = "id, fid, local_path, extension, size, modified_time, image_hash"
+
 class photo_manager(object):
     """
     http://zetcode.com/db/sqlitepythontutorial/
@@ -213,7 +215,10 @@ class photo_manager(object):
         self._execute(sql, (self.start_time, value))
     
     def check_for_attributes(self, photo_obj):
-        sql= "SELECT id, fid, local_path, extension, size, modified_time, image_hash FROM photo WHERE size=? AND image_hash=?"
+        """ 
+        Return a db_photo compatible output
+        """
+        sql= "SELECT "+db_entry_fields+" FROM photo WHERE size=? AND image_hash=?"
         return self._get_multiple_results(sql, args=(photo_obj.size, photo_obj.hash))
         
     def _get_single_result(self, sql, args=None):
@@ -224,7 +229,7 @@ class photo_manager(object):
         else:
             return result[0]
                                                                   
-    def _get_multiple_results(self, sql, args=None):
+    de  _get_multiple_results(self, sql, args=None):
         self._execute(sql, args)        
         rows = self.cursor.fetchall()
         if len(rows) > 0:
@@ -245,8 +250,12 @@ class photo_manager(object):
         """
         http://www.w3schools.com/sql/sql_null_values.asp
         """
-        sql = "SELECT local_path, name, id FROM photo WHERE originally_found=0 AND upload_time IS NULL"
-        return self._get_multiple_results(sql)
+        sql = "SELECT "+db_entry_fields+" FROM photo WHERE originally_found=0 AND upload_time IS NULL"
+        results = self._get_multiple_results(sql)
+        return_photo_list = list()
+        for result in results:
+            return_photo_list.append(db_photo(result))
+        return return_photo_list
         
     def add_upload_data(self, local_path, photo_id=None, public=None, family=None, friend=None, upload_time=None):
         """
@@ -254,9 +263,9 @@ class photo_manager(object):
         """
         if debug:
             print 'Adding upload data:'
-            print 'photo_id: '+str(photo_id)
+            print 'photo_id: '+str(data['fid'])
         sql = "UPDATE photo SET fid=?, public=?, family=?, friends=?, upload_time=? WHERE local_path=?"
-        args = (photo_id, public, family, friend, upload_time, local_path)
+        args = (data['fid'], data['public'], data['family'], data['friend'], data['upload_time'], data['path'])
         self._execute(sql, args)
             
     def close(self):
