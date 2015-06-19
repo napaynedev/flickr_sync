@@ -70,3 +70,10 @@ class flickr(object):
     
     def remove_tag(self, photo_id, tag_label):
         self.remove_all_path_tags(photo_id, tag_list=[tag_label])
+        
+    def add_tags(self, photo_id, tag_list):
+        if self.stale:
+            self._flickr_get_photos()
+        for single_photo in self.photos:
+            if photo_id == single_photo.id:
+                single_photo.addTags(tag_list)
