@@ -6,14 +6,15 @@ Created on Sun May 17 10:58:17 2015
 """
 # External Libraries
 # https://github.com/alexis-mignon/python-flickr-api/wiki/Tutorial
-import argparse, yaml, os
+import os
 from progressbar import ProgressBar, Counter, ETA
 
 # Project libraries
-from helper import get_paths, dumpclean
+from helper import get_paths
 from photo import photo
 from photo_manager import photo_manager
 from flickr_functions import flickr
+from interface import setup_arguments
 
 debug = False
 
@@ -108,32 +109,7 @@ def sync_local_photo(photo_path, pmanager, path_ignore):
     local_photo = photo(local_photo=photo_path, path_ignore=path_ignore)
     pmanager.add_local_photo(local_photo)  
     
-def setup_arguments():
-    ap = argparse.ArgumentParser()
-    print 'test'
-    ap.add_argument("-y", "--yaml_config", 
-                    required = False, 
-                    help="YAML config file, default: flickr_sync.yaml", 
-                    default="flickr_sync.yaml")
-    ap.add_argument("-d", "--photo_directories", required=False, help="Overrides yaml photo directory", action="append")
-    args = ap.parse_args()
-
-    if os.path.exists(args.yaml_config):
-        print 'yaml config exists! '+args.yaml_config
-        yaml_handler = open(args.yaml_config, 'r')
-        yaml_config = yaml.load(yaml_handler)
-        yaml_handler.close()
-    else:
-        print 'YAML config file does not exist: '+args.yaml_config
-        exit()
-        
-    if args.photo_directories != None:
-        yaml_config['photo_directories'] = args.photo_directories
-        
-    if debug:
-        print 'Dumping yaml_config'
-        dumpclean(yaml_config)
-    return yaml_config  
+ 
     
 if __name__ == "__main__":
     main()

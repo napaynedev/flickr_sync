@@ -55,7 +55,7 @@ class photo_manager(object):
                 print "New tag: "+tag
             new_enum = self._generate_tag_enum()
             self._tag_dict[tag] = new_enum
-            sql = "INSERT INTO tag_enum VALUES(?, ?)"
+            sql = "INSERT INTO tag_enum (enum, label) VALUES(?, ?)"
             self._execute(sql, args=(new_enum, tag))
             return new_enum
             
