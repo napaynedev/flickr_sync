@@ -35,4 +35,21 @@ def setup_arguments():
     if debug:
         print 'Dumping yaml_config'
         dumpclean(yaml_config)
+        
+    if "working_directory" in yaml_config:
+        empty_working_directory(yaml_config["working_directory"])
+        
     return yaml_config
+
+def empty_working_directory(directory_path):
+    if debug:
+        print 'Emptying working directory: '+directory_path
+    # http://stackoverflow.com/questions/185936/delete-folder-contents-in-python
+    for the_file in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            #elif os.path.isdir(file_path): shutil.rmtree(file_path)
+        except Exception, e:
+            print e
