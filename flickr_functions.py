@@ -5,6 +5,7 @@ Created on Sat Jun 13 09:21:50 2015
 @author: root
 """
 import flickr_api, datetime, photo
+from helper import is_special_directory_tag
 
 class flickr(object):
     def __init__(self, setup_dict):
@@ -56,17 +57,25 @@ class flickr(object):
         self.stale = True
         return flickr_info_dict
         
-    def remove_all_path_tags(self, photo_id, tag_list=None):
+    def remove_all_path_tags(self, photo_id, tag_list=None, filter_directory_tags=True):
         if self.stale:
             self._flickr_get_photos()
         for single_photo in self.photos:
             if photo_id == single_photo.id:
                 for tag in single_photo.tags:
+                    tag_text = tag.raw                    
+                    remove = False
                     if tag_list == None:
-                        tag.remove()
+                        remove = True
                     else:
-                        if tag.raw in tag_list:
-                            tag.remove()
+                        if tag_text in tag_list:
+                            remove = True
+                    # If we aren't filtering, don't remove non-special tags
+                    if filter_directory_tags:
+                        if not is_special_directory_tag(tag_text):
+                            remove = False
+                    if remove:
+                        tag.remove()
     
     def remove_tag(self, photo_id, tag_label):
         self.remove_all_path_tags(photo_id, tag_list=[tag_label])

@@ -60,3 +60,12 @@ def compute_image_hash(photo_path):
     # http://stackoverflow.com/questions/3583265/compare-result-from-hexdigest-to-a-string
     h = hashlib.md5(image).hexdigest()
     return h
+    
+def is_special_directory_tag(text):
+    result = False    
+    if ':' in text:
+        tag_parts = text.split(':')
+        dir_index = tag_parts[0]
+        if dir_index.isdigit():
+            result = True
+    return result

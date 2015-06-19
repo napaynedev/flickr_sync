@@ -6,7 +6,7 @@ Created on Wed May 20 20:03:55 2015
 """
 
 import os, shutil, datetime
-from helper import compute_image_hash
+from helper import compute_image_hash, is_special_directory_tag
 
 debug = False
 
@@ -67,14 +67,13 @@ class photo(object):
         path_dir_dict = dict()
         last_index = 0
         for tag in self.tags:
-            if ':' in tag:
+            if is_special_directory_tag(tag):
                 tag_parts = tag.split(':')
-                dir_index = tag_parts[0]
-                if dir_index.isdigit():
-                    dir_index = int(dir_index)
-                    path_dir_dict[dir_index] = tag_parts[1]
-                    if dir_index > last_index:
-                        last_index = dir_index
+                dir_index = tag_parts[0]                
+                dir_index = int(dir_index)
+                path_dir_dict[dir_index] = tag_parts[1]
+                if dir_index > last_index:
+                    last_index = dir_index
         path_list = list()
         if 0 in path_dir_dict:
             for i in range(0,last_index):
