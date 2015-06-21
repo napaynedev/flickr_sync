@@ -12,7 +12,7 @@ debug = False
 
 class photo(object):
     def __init__(self, local_photo=None, path_ignore=None, 
-                 flickr_photo_obj=None, working_directory=None,
+                 flickr_photo_obj=None, working_directory=None, download=True,
                  db_entry=None):
         self.photo_path = None        
         self.containing_directory = None
@@ -26,7 +26,7 @@ class photo(object):
         if local_photo != None:
             self._process_local_photo(local_photo, path_ignore)
         elif flickr_photo_obj != None and working_directory != None:
-            self._process_flickr_photo(flickr_photo_obj, working_directory)
+            self._process_flickr_photo(flickr_photo_obj, working_directory, download)
         elif db_entry != None:
             self._process_db_photo(db_entry)
         else:
@@ -35,15 +35,16 @@ class photo(object):
         if debug:
             print self
             
-    def _process_flickr_photo(self, flickr_obj, working_directory):
+    def _process_flickr_photo(self, flickr_obj, working_directory, download):
         #print 'Processing a flickr photo'        
         self.filename = flickr_obj.title
         self.fname, self.extension = self._get_fname_and_extension(self.filename)
-        self.photo_path = working_directory+'/'+self.filename
-        flickr_obj.save(self.photo_path)
-        self.download_time = datetime.datetime.now()
-        self._compute_hash()
-        self._get_size_and_mtime()
+        if download:
+            self.photo_path = working_directory+'/'+self.filename
+            flickr_obj.save(self.photo_path)
+            self.download_time = datetime.datetime.now()
+            self._compute_hash()
+            self._get_size_and_mtime()
         self._process_flickr_tags(flickr_obj)
         self.ispublic = flickr_obj.ispublic
         self.isfamily = flickr_obj.isfamily
@@ -98,6 +99,8 @@ class photo(object):
         self.hash = db_entry[4]
         
     def _get_containing_and_filename(self, path):
+        if debug:
+            print 'Getting containing directory and filename for: '+path
         containing, filename = os.path.split(path)
         containing.replace('\\', '/')
         return (containing, filename)
@@ -111,7 +114,9 @@ class photo(object):
         """
         http://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python
         """
-                
+        if debug:
+            print 'Processing local photo at: '+photo_path
+            print 'Ignoring the portion of the path: '+str(path_ignore)
         self.photo_path = photo_path        
         self.containing_directory, self.filename = self._get_containing_and_filename(photo_path)
         self.fname, self.extension = self._get_fname_and_extension(self.filename)        

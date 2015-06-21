@@ -12,7 +12,6 @@ debug = False
 
 def setup_arguments():
     ap = argparse.ArgumentParser()
-    print 'test'
     ap.add_argument("-y", "--yaml_config", 
                     required = False, 
                     help="YAML config file, default: flickr_sync.yaml", 
@@ -37,11 +36,11 @@ def setup_arguments():
         dumpclean(yaml_config)
         
     if "working_directory" in yaml_config:
-        empty_working_directory(yaml_config["working_directory"])
+        empty_working_directory(yaml_config["working_directory"], yaml_config["supported_photo_types"])
         
     return yaml_config
 
-def empty_working_directory(directory_path):
+def empty_working_directory(directory_path, file_types):
     if debug:
         print 'Emptying working directory: '+directory_path
     # http://stackoverflow.com/questions/185936/delete-folder-contents-in-python
@@ -49,7 +48,9 @@ def empty_working_directory(directory_path):
         file_path = os.path.join(directory_path, the_file)
         try:
             if os.path.isfile(file_path):
-                os.unlink(file_path)
+                for file_type in file_types:
+                    if file_path.endswith(file_type):
+                        os.unlink(file_path)
             #elif os.path.isdir(file_path): shutil.rmtree(file_path)
         except Exception, e:
             print e
