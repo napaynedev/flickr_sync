@@ -25,8 +25,22 @@ def main():
     pmanager = photo_manager(yaml_config_dict)
     sync_local_photos(yaml_config_dict, pmanager)
     sync_flickr_photos(yaml_config_dict, pmanager)
+    reset_tags(pmanager, yaml_config_dict, flickr_controller)
     pmanager.close()
     print "Finished all syncing!"
+    
+def reset_tags(pmanager, yaml_config_dict, flickr_controller):
+    photos_needing_reset = pmanager.get_photos_tag_reset()
+    count = len(photos_needing_reset)
+    pbar = sync_pbar(count)
+    i = 0
+    for single_photo in photos_needing_reset:
+        i = i +1
+        new_tags = single_photo.generate_tags(single_photo.photo_path, path_ignore=yaml_config_dict['path_ignore'])
+        single_photo.set_tags(new_tags)
+        flickr_controller.reset_tags(single_photo.fid, new_tags)
+        pbar.update(i)
+    pbar.finish()
     
 def sync_pbar(count):
     return ProgressBar(widgets=['Processed: ', Counter(), ' of '+str(count)+' ', ETA()], maxval=count).start()

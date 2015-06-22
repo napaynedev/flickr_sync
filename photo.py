@@ -38,6 +38,7 @@ class photo(object):
     def _process_flickr_photo(self, flickr_obj, working_directory, download):
         #print 'Processing a flickr photo'        
         self.filename = flickr_obj.title
+        self.fid = flickr_obj.id
         self.fname, self.extension = self._get_fname_and_extension(self.filename)
         if download:
             self.photo_path = working_directory+'/'+self.filename
@@ -84,7 +85,10 @@ class photo(object):
     def _process_flickr_tags(self, flickr_obj):
         self.tags = []        
         for tag in flickr_obj.tags:
-            self.tags.append(tag.raw)        
+            self.tags.append(tag.raw)      
+            
+    def set_tags(self, new_tags):
+        self.tags = new_tags
             
     def _process_db_photo(self, db_entry):
         """
@@ -121,7 +125,7 @@ class photo(object):
         self.containing_directory, self.filename = self._get_containing_and_filename(photo_path)
         self.fname, self.extension = self._get_fname_and_extension(self.filename)        
         self._get_size_and_mtime()        
-        self.tags = self._generate_tags(self.containing_directory, path_ignore)
+        self.tags = self.generate_tags(self.containing_directory, path_ignore)
         self._compute_hash()
         
     def _get_size_and_mtime(self):
@@ -133,7 +137,7 @@ class photo(object):
     def _compute_hash(self):
         self.hash = compute_image_hash(self.photo_path)
 
-    def _generate_tags(self, tag_string, path_ignore=None):
+    def generate_tags(self, tag_string, path_ignore=None):
         if path_ignore != None:
             tag_string = tag_string.replace(path_ignore, '')
         return self._filter_tags(tag_string.split('/'))

@@ -64,8 +64,10 @@ class photo_manager(object):
         self.cursor = self.db.cursor()  
         self.cursor.executescript("""
             CREATE TABLE photo(id INT, originally_found INT, size INT, image_hash TEXT, 
-                               local_path TEXT, extension TEXT, modified_time REAL, download_time REAL, last_touch REAL,
-                               name TEXT, fid INT, public INT, family INT, friends INT, upload_time REAL);
+                               local_path TEXT, extension TEXT, modified_time REAL, 
+                               download_time REAL, last_touch REAL, name TEXT, 
+                               fid INT, public INT, family INT, friends INT, 
+                               upload_time REAL, reset_tags INT);
             CREATE TABLE tag_enum(enum INT, label TEXT);
             CREATE TABLE tag_map(tag_enum INT, photo_id INT);
             """)
@@ -81,12 +83,25 @@ class photo_manager(object):
         if not self.flickr_photo_exists(flickr_photo):
             move_success = flickr_photo.move_flickr_to_local(flickr_local_dir)
             if move_success:
-                self.insert_photo(1, flickr_photo.size, flickr_photo.hash, tags=flickr_photo.tags, 
+                uid = self.insert_photo(1, flickr_photo.size, flickr_photo.hash, tags=flickr_photo.tags, 
                                   name=flickr_photo.filename, local_path=flickr_photo.photo_path, 
                                   extension=flickr_photo.extension, time=flickr_photo.modified_time,
                                   dtime=flickr_photo.download_time, public=flickr_photo.ispublic,
-                                  family=flickr_photo.isfamily, friends=flickr_photo.isfriend)
+                                  family=flickr_photo.isfamily, friends=flickr_photo.isfriend,
+                                  fid=flickr_photo.id)
+                self.flag_tag_reset(uid)
         
+    def flag_tag_reset(self, uid, flag_value=1):
+        sql = "UPDATE photo SET reset_tags=? WHERE id=?"
+        self._execute(sql, (flag_value, uid))
+        
+    def unflag_tag_reset(self, uid):
+        self._flag_tag_reset(uid, flag_value=0)
+        
+    def get_photos_tag_reset(self):
+        sql = "SELECT "+db_entry_fields+" FROM photo WHERE reset_tags=1"
+        return self._get_multiple_photos(sql)
+    
     def flickr_photo_exists(self, fphoto):
         attribute_matches = self.check_for_attributes(fphoto)
         # If it isn't the exact same file, check the attributes
@@ -145,7 +160,8 @@ class photo_manager(object):
                 # http://stackoverflow.com/questions/1380860/add-variables-to-tuple
                 tag_additions.append((tag_enum, uid))
             sql = "INSERT INTO tag_map VALUES(?, ?)"
-            self._execute_many(sql, tag_additions)        
+            self._execute_many(sql, tag_additions)
+        return uid
                      
     def _generate_photo_id(self):
         return self._generate_id("photo", "id")
@@ -229,7 +245,7 @@ class photo_manager(object):
         else:
             return result[0]
                                                                   
-    de  _get_multiple_results(self, sql, args=None):
+    def  _get_multiple_results(self, sql, args=None):
         self._execute(sql, args)        
         rows = self.cursor.fetchall()
         if len(rows) > 0:
@@ -251,6 +267,9 @@ class photo_manager(object):
         http://www.w3schools.com/sql/sql_null_values.asp
         """
         sql = "SELECT "+db_entry_fields+" FROM photo WHERE originally_found=0 AND upload_time IS NULL"
+        return self._get_multiple_photos(sql)
+        
+    def _get_multiple_photos(self, sql):
         results = self._get_multiple_results(sql)
         return_photo_list = list()
         for result in results:

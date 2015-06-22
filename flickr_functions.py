@@ -106,3 +106,7 @@ class flickr(object):
                     print 'Found photo and adding requested tags'
                 single_photo.addTags(tag_list)
                 self.stale = True
+                
+    def reset_tags(self, photo_id, tag_list):
+        self.remove_all_tags(photo_id)
+        self.add_tags(photo_id, tag_list)
