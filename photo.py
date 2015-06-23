@@ -8,12 +8,14 @@ Created on Wed May 20 20:03:55 2015
 import os, shutil, datetime
 from helper import compute_image_hash, is_special_directory_tag
 
-debug = False
+debug = True
 
 class photo(object):
     def __init__(self, local_photo=None, path_ignore=None, 
                  flickr_photo_obj=None, working_directory=None, download=True,
                  db_entry=None):
+        if debug:
+            print 'Attempting to create a photo'
         self.photo_path = None        
         self.containing_directory = None
         self.filename = None
@@ -23,6 +25,7 @@ class photo(object):
         self.modified_time = None
         self.tags = None
         self.hash = None
+        assert local_photo != None or flickr_photo_obj != None and working_directory!= None or db_entry != None
         if local_photo != None:
             self._process_local_photo(local_photo, path_ignore)
         elif flickr_photo_obj != None and working_directory != None:
@@ -140,6 +143,8 @@ class photo(object):
     def generate_tags(self, tag_string, path_ignore=None):
         if path_ignore != None:
             tag_string = tag_string.replace(path_ignore, '')
+        if debug:
+            print 'Creating tags out of: '+tag_string
         return self._filter_tags(tag_string.split('/'))
             
     def _filter_tags(self, tag_list):

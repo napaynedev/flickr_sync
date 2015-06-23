@@ -7,7 +7,7 @@ Created on Sat Jun 13 09:21:50 2015
 import flickr_api, datetime, photo
 from helper import is_special_directory_tag
 
-debug = False
+debug = True
 
 class flickr(object):
     def __init__(self, setup_dict):
@@ -73,7 +73,10 @@ class flickr(object):
         if self.stale:
             self._flickr_get_photos()
         for single_photo in self.photos:
-            if photo_id == single_photo.id:
+            if debug:
+                print "single photo is: "+str(single_photo.id)
+                print 'input photo is %d' % (photo_id)
+            if photo_id == int(single_photo.id):
                 if debug:
                     print 'Found photo to remove tags from!'
                 for tag in single_photo.tags:
@@ -101,12 +104,14 @@ class flickr(object):
         if self.stale:
             self._flickr_get_photos()
         for single_photo in self.photos:
-            if photo_id == single_photo.id:
+            if photo_id == int(single_photo.id):
                 if debug:
                     print 'Found photo and adding requested tags'
                 single_photo.addTags(tag_list)
                 self.stale = True
                 
     def reset_tags(self, photo_id, tag_list):
+        if debug:
+            print 'Resetting tags on: '+str(photo_id)
         self.remove_all_tags(photo_id)
         self.add_tags(photo_id, tag_list)
