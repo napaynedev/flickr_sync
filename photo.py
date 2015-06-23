@@ -41,6 +41,8 @@ class photo(object):
     def _process_flickr_photo(self, flickr_obj, working_directory, download):
         #print 'Processing a flickr photo'        
         self.filename = flickr_obj.title
+        if '.' not in self.filename:
+            self.filename = self.filename+'.JPG'
         self.fid = flickr_obj.id
         self.fname, self.extension = self._get_fname_and_extension(self.filename)
         if download:
