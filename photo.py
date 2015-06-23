@@ -8,7 +8,7 @@ Created on Wed May 20 20:03:55 2015
 import os, shutil, datetime
 from helper import compute_image_hash, is_special_directory_tag
 
-debug = True
+debug = False
 
 class photo(object):
     def __init__(self, local_photo=None, path_ignore=None, 

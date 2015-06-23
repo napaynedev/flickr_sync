@@ -9,7 +9,7 @@ import sqlite3 as lite, os, datetime
 
 from photo import photo, db_photo
 
-debug = True
+debug = False
 
 db_entry_fields = "id, fid, local_path, extension, size, modified_time, image_hash"
 

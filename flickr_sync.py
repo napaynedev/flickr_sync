@@ -16,7 +16,7 @@ from photo_manager import photo_manager
 from flickr_functions import flickr
 from interface import setup_arguments
 
-debug = True
+debug = False
 
 def main():
     yaml_config_dict = setup_arguments()

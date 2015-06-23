@@ -7,7 +7,7 @@ Created on Sat Jun 13 09:21:50 2015
 import flickr_api, datetime, photo
 from helper import is_special_directory_tag
 
-debug = True
+debug = False
 
 class flickr(object):
     def __init__(self, setup_dict):
