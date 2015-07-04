@@ -52,14 +52,18 @@ class flickr(object):
                 photo_obj = photo.photo(flickr_photo_obj=single_photo, working_directory=self.working_directory, download=False)
                 print photo_obj
         
-    def upload_photo(self, photo, tags, permissions):
+    def upload_photo(self, photo, tags, permissions, path_ignore=None):
+        modified_path = photo.photo_path        
+        if path_ignore != None:
+            modified_path = modified_path.replace(path_ignore, '')
         flickr_info_dict = dict()
         flickr_info_dict['path'] = photo.photo_path        
         flickr_info_dict['public'] = permissions['is_public']
         flickr_info_dict['family'] = permissions['is_family']
         flickr_info_dict['friend'] = permissions['is_friend']
         flickr_info_dict['upload_time'] = datetime.datetime.now()
-        flickr_photo = flickr_api.upload(photo_file = flickr_info_dict['path'], 
+        flickr_photo = flickr_api.upload(photo_file = flickr_info_dict['path'],
+                                         description = 'sync_path|'+modified_path+'|end_sync_path',
                                          title = photo.filename,
                                          tags = " ".join(tags),
                                          is_public=flickr_info_dict['public'],

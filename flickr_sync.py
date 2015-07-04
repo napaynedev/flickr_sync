@@ -89,7 +89,9 @@ def upload_local(pmanager, yaml_config_dict, flickr_controller):
         for photo_upload in photos_to_upload:
             i = i +1
             tags = pmanager.get_photo_tags(photo_upload.uid)
-            upload_data = flickr_controller.upload_photo(photo_upload, tags, yaml_config_dict["photo_permissions"])
+            upload_data = flickr_controller.upload_photo(photo_upload, tags, 
+                                                         yaml_config_dict["photo_permissions"],
+                                                         path_ignore=yaml_config_dict["path_ignore"])
             pmanager.add_upload_data(upload_data)
             if yaml_config_dict["archive"]:
                 photo_path = photo_upload.photo_path                

@@ -44,6 +44,7 @@ class photo(object):
         if '.' not in self.filename:
             self.filename = self.filename+'.JPG'
         self.fid = flickr_obj.id
+        self.flickr_obj = flickr_obj
         self.fname, self.extension = self._get_fname_and_extension(self.filename)
         if download:
             self.photo_path = working_directory+'/'+self.filename
@@ -71,6 +72,10 @@ class photo(object):
             return False
         
     def _construct_local_path(self, photo_dir):
+        if hasattr(self, 'flickr_obj'):
+            search_result = self._find_desc_path(self.flickr_obj.description)            
+            if search_result:
+                return photo_dir+'/'+search_result                    
         path_dir_dict = dict()
         last_index = 0
         for tag in self.tags:
@@ -85,7 +90,14 @@ class photo(object):
         if 0 in path_dir_dict:
             for i in range(0,last_index):
                 path_list.append(path_dir_dict[i])
-        return photo_dir+'/'+'/'.join(path_list)        
+        return photo_dir+'/'+'/'.join(path_list)
+
+    def _find_desc_path(self, description_string):
+        if 'sync_path|' in description_string and '|end_sync_path' in description_string:
+            start = description_string.index( 'sync_path|' ) + len( 'sync_path|' )
+            end = description_string.index( '|end_sync_path', start )
+            return description_string[start:end]
+        return False
         
     def _process_flickr_tags(self, flickr_obj):
         self.tags = []        
@@ -147,6 +159,8 @@ class photo(object):
             tag_string = tag_string.replace(path_ignore, '')
         if debug:
             print 'Creating tags out of: '+tag_string
+        # Get rid of spaces
+        tag_string = tag_string.replace(' ', '_')
         return self._filter_tags(tag_string.split('/'))
             
     def _filter_tags(self, tag_list):
