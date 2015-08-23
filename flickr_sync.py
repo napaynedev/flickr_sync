@@ -113,8 +113,11 @@ def process_directory(directory, pmanager, file_types, path_ignore):
         fname, extension = os.path.splitext(file_path)
         extension = extension.replace('.', '')
         if extension in file_types:
-            i = i + 1
-            sync_local_photo(file_path, pmanager, path_ignore)
+            if '.' not in fname:            
+                i = i + 1
+                sync_local_photo(file_path, pmanager, path_ignore)
+            else:
+                print file_path+' skipped due to . in name'
     print "Syncing %i photos in local db" % i
     # I think get_paths is already walking the directory
     #for dir_path in directory_paths:
