@@ -26,6 +26,10 @@ def main():
     sync_flickr_photos(yaml_config_dict, pmanager, flickr_controller)
     reset_tags(pmanager, yaml_config_dict, flickr_controller)
     pmanager.close()
+    success_file = "success_file"
+    if success_file in yaml_config_dict:
+        with open(yaml_config_dict[success_file], "w") as fh:
+            fh.write("Success!")
     print "Finished all syncing!"
     
 def reset_tags(pmanager, yaml_config_dict, flickr_controller):

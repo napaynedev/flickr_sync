@@ -11,6 +11,7 @@ from helper import dumpclean
 debug = False
 
 def setup_arguments():
+    print 'Setting up and parsing arguments...'
     ap = argparse.ArgumentParser()
     ap.add_argument("-y", "--yaml_config", 
                     required = False, 

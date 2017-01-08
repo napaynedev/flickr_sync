@@ -18,6 +18,7 @@ class photo_manager(object):
     http://zetcode.com/db/sqlitepythontutorial/
     """
     def __init__(self, yaml):
+        print 'Creating photo manager...'        
         path = yaml["photo_info_db"]
         self.log = open(yaml["photo_manager_log"], "w")        
         if os.path.exists(path):
